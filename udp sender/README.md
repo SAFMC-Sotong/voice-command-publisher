@@ -26,6 +26,20 @@ Ensure your UDP sender code is saved in a file named **`voice_control.cpp`**.
 ---
 
 ### 3. Compile the Code
+Make sure wiringPi is installed:
+```sh
+# fetch the source
+sudo apt install git
+git clone https://github.com/WiringPi/WiringPi.git
+cd WiringPi
+
+# build the package
+./build debian
+mv debian-template/wiringpi_3.14_arm64.deb .
+
+#install
+sudo apt install ./wiringpi_3.14_arm64.deb 
+```
 Use `g++` to compile the code:
 ```sh
 g++ -o voice_control voice_control.cpp -Wall
@@ -36,9 +50,9 @@ g++ -o voice_control voice_control.cpp -Wall
 
 If you encounter errors related to missing libraries, try compiling with:
 ```sh
-g++ -o voice_control voice_control.cpp -Wall -lpthread
+g++ -o voice_control voice_control.cpp -Wall -lwiringPi -lpthread
 ```
-This ensures compatibility with the **pthread** library if needed.
+This ensures compatibility with the **pthread** and **wiringPi** library if needed.
 
 ---
 
