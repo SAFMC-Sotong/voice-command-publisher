@@ -11,6 +11,8 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+
+
 # Find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -18,6 +20,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(mavros_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+
 
 # Build
 add_executable(udp_mavros_bridge src/udp_mavros_bridge.cpp)
@@ -47,11 +50,23 @@ ament_target_dependencies(udp_mavros_bridge_2
   tf2_geometry_msgs
 )
 
+add_executable(udp_mavros_test src/udp_mavros_test.cpp)
+ament_target_dependencies(udp_mavros_test
+  rclcpp
+  geometry_msgs
+  mavros_msgs
+  tf2
+  tf2_geometry_msgs
+)
+
+
+
 # Install
 install(TARGETS
   udp_mavros_bridge
   mavros_example
   udp_mavros_bridge_2
+  udp_mavros_test
   DESTINATION lib/${PROJECT_NAME}
 )
 
