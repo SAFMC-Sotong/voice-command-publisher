@@ -4,11 +4,17 @@
 #include <regex>
 #include <algorithm>
 #include <cstring>
+#include <cmath>  // Added this for M_PI
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <wiringPi.h>
 #include <sys/socket.h>
 #include <sys/un.h> // For UNIX domain sockets
+
+// Define M_PI if it's not defined in cmath
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 #define BUTTON_PIN 27  // GPIO Pin for physical stop button
 
@@ -54,6 +60,13 @@ private:
     std::thread whisper_monitor_thread_;
     // Adjusted regex to capture the transcription text
     std::regex heard_pattern_ = std::regex("Transcription: (.*)");
+    
+    // Patterns for numerical commands
+    std::regex move_forward_pattern_ = std::regex("move forward (\\d+(?:\\.\\d+)?)\\s*(?:meter|meters|m)?");
+    std::regex go_up_pattern_ = std::regex("go up (\\d+(?:\\.\\d+)?)\\s*(?:meter|meters|m)?");
+    std::regex go_down_pattern_ = std::regex("go down (\\d+(?:\\.\\d+)?)\\s*(?:meter|meters|m)?");
+    std::regex yaw_left_pattern_ = std::regex("(?:yaw|turn) left (\\d+(?:\\.\\d+)?)\\s*(?:degree|degrees|deg)?");
+    std::regex yaw_right_pattern_ = std::regex("(?:yaw|turn) right (\\d+(?:\\.\\d+)?)\\s*(?:degree|degrees|deg)?");
 
     void setup_udp_socket() {
         udp_socket_ = socket(AF_INET, SOCK_DGRAM, 0);
@@ -75,7 +88,8 @@ private:
         if (sent < 0) {
             std::cerr << "Failed to send UDP packet" << std::endl;
         } else {
-            std::cout << "Sent command to " << active_drone_ << ": " << cmd.command << std::endl;
+            std::cout << "Sent command to " << active_drone_ << ": " << cmd.command 
+                      << " with params: " << cmd.param1 << ", " << cmd.param2 << std::endl;
         }
     }
 
@@ -152,7 +166,9 @@ private:
     void process_whisper_output(const std::string& transcription) {
         std::string lower_text = transcription;
         std::transform(lower_text.begin(), lower_text.end(), lower_text.begin(), ::tolower);
-        lower_text.erase(std::remove(lower_text.begin(), lower_text.end(), '.'), lower_text.end());
+        // lower_text.erase(std::remove(lower_text.begin(), lower_text.end(), '.'), lower_text.end());
+
+        // std::cout << "Now controlling: Drone Beta" << lower_text << std::endl;
 
         // Change active drone based on keywords
         if (lower_text.find("drone alpha") != std::string::npos) {
@@ -162,10 +178,29 @@ private:
             active_drone_ = "beta";
             std::cout << "Now controlling: Drone Beta" << std::endl;
         }
-        // Process commands
+        
+        // Process numerical commands
+        std::smatch match;
+        if (std::regex_search(lower_text, match, move_forward_pattern_)) {
+            float distance = std::stof(match[1]);
+            move_forward(distance);
+        } else if (std::regex_search(lower_text, match, go_up_pattern_)) {
+            float distance = std::stof(match[1]);
+            throttle_up(distance);
+        } else if (std::regex_search(lower_text, match, go_down_pattern_)) {
+            float distance = std::stof(match[1]);
+            throttle_down(distance);
+        } else if (std::regex_search(lower_text, match, yaw_left_pattern_)) {
+            float angle = std::stof(match[1]);
+            yaw_left(angle);
+        } else if (std::regex_search(lower_text, match, yaw_right_pattern_)) {
+            float angle = std::stof(match[1]);
+            yaw_right(angle);
+        }
+        // Process non-numerical commands
         else if (lower_text.find("go arm") != std::string::npos) {
             arm_drone();
-        }else if (lower_text.find("go disarm") != std::string::npos) {
+        } else if (lower_text.find("go disarm") != std::string::npos) {
             disarm_drone();
         } else if (lower_text.find("off board") != std::string::npos) {
             switch_to_offboard_mode();
@@ -174,15 +209,18 @@ private:
         } else if (lower_text.find("gripper close") != std::string::npos) {
             close_gripper();
         } else if (lower_text.find("go up") != std::string::npos) {
-            throttle_up();
+            throttle_up(1.0f); // Default distance
         } else if (lower_text.find("go down") != std::string::npos) {
-            throttle_down();
-        } else if (lower_text.find("turn left") != std::string::npos) {
-            yaw_left();
-        } else if (lower_text.find("turn right") != std::string::npos) {
-            yaw_right();
-        } else if (lower_text.find("move forward") != std::string::npos) {
-            move_forward();
+            throttle_down(1.0f); // Default distance
+        } else if (lower_text.find("turn left") != std::string::npos || 
+                   lower_text.find("yaw left") != std::string::npos) {
+            yaw_left(30.0f); // Default angle
+        } else if (lower_text.find("turn right") != std::string::npos || 
+                   lower_text.find("yaw right") != std::string::npos) {
+            yaw_right(30.0f); // Default angle
+        } else if (lower_text.find("move forward") != std::string::npos ||
+                    lower_text.find("go forward") != std::string::npos) {
+            move_forward(1.0f); // Default distance
         } else if (lower_text.find("stop") != std::string::npos) {
             stop_movement();
         }
@@ -197,6 +235,7 @@ private:
         VehicleCommand cmd = {400, 0.0f, 0.0f, 0, 0, 0, 0, true};
         send_udp(cmd);
     }
+    
     void switch_to_offboard_mode() {
         VehicleCommand cmd = {176, 1.0f, 6.0f, 0, 0, 0, 0, true};
         send_udp(cmd);
@@ -212,33 +251,43 @@ private:
         send_udp(cmd);
     }
 
-    void throttle_up() {
-        VehicleCommand cmd = {178, 2.0f, -1.0f, 0, 0, 0, 0, true};
+    void throttle_up(float distance = 0.5f) {
+        VehicleCommand cmd = {178, distance , -1.0f, 0, 0, 0, 0, true};
+        std::cout << "Throttle up " << distance << " meters" << std::endl;
         send_udp(cmd);
     }
 
-    void throttle_down() {
-        VehicleCommand cmd = {178, 2.0f, 1.0f, 0, 0, 0, 0, true};
+    void throttle_down(float distance = 0.5f) {
+        VehicleCommand cmd = {178, distance , 1.0f, 0, 0, 0, 0, true};
+        std::cout << "Throttle down " << distance << " meters" << std::endl;
         send_udp(cmd);
     }
 
-    void yaw_left() {
-        VehicleCommand cmd = {179, -1.0f, 0.0f, 0, 0, 0, 0, true};
+    void yaw_left(float angle = 30.0f) {
+        // Convert to radians if needed by your flight controller
+        // float angle_rad = angle * (M_PI / 180.0f);
+        VehicleCommand cmd = {179, -1.0f, angle, 0, 0, 0, 0, true};
+        std::cout << "Yaw left " << angle << " degrees" << std::endl;
         send_udp(cmd);
     }
 
-    void yaw_right() {
-        VehicleCommand cmd = {179, 1.0f, 0.0f, 0, 0, 0, 0, true};
+    void yaw_right(float angle = 30.0f) {
+        // Convert to radians if needed by your flight controller
+        // float angle_rad = angle * (M_PI / 180.0f);
+        VehicleCommand cmd = {179, 1.0f, angle, 0, 0, 0, 0, true};
+        std::cout << "Yaw right " << angle << " degrees" << std::endl;
         send_udp(cmd);
     }
 
-    void move_forward() {
-        VehicleCommand cmd = {180, 0.3f, 0.0f, 0, 0, 0, 0, true};
+    void move_forward(float distance = 0.3f) {
+        VehicleCommand cmd = {180, distance, 0.0f, 0, 0, 0, 0, true};
+        std::cout << "Move forward " << distance << " meters" << std::endl;
         send_udp(cmd);
     }
 
     void stop_movement() {
         VehicleCommand cmd = {181, 0.0f, 0.0f, 0, 0, 0, 0, true};
+        std::cout << "Stop movement" << std::endl;
         send_udp(cmd);
     }
 };
