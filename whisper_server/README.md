@@ -55,7 +55,7 @@ Example Usage
 ```sh
 python3 tests/laptop_server.py --host 0.0.0.0 --port 12345 --model-path /home/hn/Downloads/drone_model --device cpu --compute int8
 ```
-the port number must be same as the client port nnumber.
+the port number must be same as the client port number.
 The model path can remove (to use default whisper model).
 If using local model the model path should be your local model directory
 The device can select `cpu` or `cuda` .
