@@ -262,11 +262,11 @@ private:
               } else if (last_udp_cmd_.param2 == 1.0f) {
               // Go down by param1 meters
               target_setpoint_z_ -= altitude_change;
-              // Safety check - prevent negative altitude
-              if (target_setpoint_z_ < 0.1) {
-                  target_setpoint_z_ = 0.1;
-                  RCLCPP_WARN(this->get_logger(), "Min altitude limit reached, setting to 0.1m");
-              }
+              // // Safety check - prevent negative altitude
+              // if (target_setpoint_z_ < 0.1) {
+              //     target_setpoint_z_ = 0.1;
+              //     RCLCPP_WARN(this->get_logger(), "Min altitude limit reached, setting to 0.1m");
+              // }
               RCLCPP_INFO(this->get_logger(), "UDP cmd: Decrease altitude target by %.2fm, new target: %.2f", 
                           altitude_change, target_setpoint_z_);
               }
