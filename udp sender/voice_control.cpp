@@ -192,7 +192,7 @@ private:
             move_forward(distance);
         } else if (std::regex_search(lower_text, match, move_backward_pattern_)) {
             float distance = std::stof(match[1]);
-            move_back(distance);   
+            move_backward(distance);   
         } else if (std::regex_search(lower_text, match, roll_left_pattern_)) {
             float distance = std::stof(match[1]);
             move_left(distance);  
@@ -240,14 +240,14 @@ private:
             move_forward(0.3f); // Default distance
         } else if (lower_text.find("move backward") != std::string::npos ||
                     lower_text.find("go backward") != std::string::npos) {
-            move_back(0.3f); // Default distance
+            move_backward(0.3f); // Default distance
          } else if (lower_text.find("move left") != std::string::npos ||
                     lower_text.find("roll left") != std::string::npos ||
-                    lower_text.find("go left") != std::string::npos)) {
+                    lower_text.find("go left") != std::string::npos){
             move_left(0.3f); // Default distance
         } else if (lower_text.find("move right") != std::string::npos ||
                     lower_text.find("roll right") != std::string::npos ||
-                    lower_text.find("go right") != std::string::npos)) {
+                    lower_text.find("go right") != std::string::npos) {
             move_right(0.3f); // Default distance
         } else if (lower_text.find("stop") != std::string::npos) {
             stop_movement();
@@ -320,6 +320,12 @@ private:
     void move_forward(float distance = 0.3f) {
         VehicleCommand cmd = {180, distance, 0.0f, 0, 0, 0, 0, true};
         std::cout << "Move forward " << distance << " meters" << std::endl;
+        send_udp(cmd);
+    }
+    
+    void move_backward(float distance = 0.3f) {
+        VehicleCommand cmd = {180, -distance, 0.0f, 0, 0, 0, 0, true};
+        std::cout << "Move backward " << distance << " meters" << std::endl;
         send_udp(cmd);
     }
 
