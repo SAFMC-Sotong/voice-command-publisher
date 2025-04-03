@@ -209,20 +209,39 @@ private:
         } else if (lower_text.find("gripper close") != std::string::npos) {
             close_gripper();
         } else if (lower_text.find("go up") != std::string::npos) {
-            throttle_up(1.0f); // Default distance
+            throttle_up(0.5f); // Default distance
         } else if (lower_text.find("go down") != std::string::npos) {
-            throttle_down(1.0f); // Default distance
+            throttle_down(0.5f); // Default distance
         } else if (lower_text.find("turn left") != std::string::npos || 
                    lower_text.find("yaw left") != std::string::npos) {
-            yaw_left(30.0f); // Default angle
+            yaw_left(15.0f); // Default angle
         } else if (lower_text.find("turn right") != std::string::npos || 
                    lower_text.find("yaw right") != std::string::npos) {
-            yaw_right(30.0f); // Default angle
+            yaw_right(15.0f); // Default angle
         } else if (lower_text.find("move forward") != std::string::npos ||
                     lower_text.find("go forward") != std::string::npos) {
-            move_forward(1.0f); // Default distance
+            move_forward(0.3f); // Default distance
+        } else if (lower_text.find("move backward") != std::string::npos ||
+                lower_text.find("go backward") != std::string::npos) {
+                move_back(0.3f); // Default distance
+         } else if (lower_text.find("move left") != std::string::npos ||
+            lower_text.find("pitch left") != std::string::npos) {
+            move_left(0.3f); // Default distance
+        } else if (lower_text.find("move right") != std::string::npos ||
+            lower_text.find("pitch right") != std::string::npos) {
+            move_right(0.3f); // Default distance
         } else if (lower_text.find("stop") != std::string::npos) {
             stop_movement();
+        } else if (lower_text.find("go record") != std::string::npos || 
+            lower_text.find("record path") != std::string::npos) {
+        start_path_recording();
+        } else if (lower_text.find("alpha reach") != std::string::npos || 
+            lower_text.find("no record") != std::string::npos) {
+        stop_path_recording();
+        } else if (lower_text.find("go back") != std::string::npos || 
+            lower_text.find("return path") != std::string::npos || 
+            lower_text.find("return home") != std::string::npos) {
+        return_path();
         }
     }
 
@@ -263,7 +282,7 @@ private:
         send_udp(cmd);
     }
 
-    void yaw_left(float angle = 30.0f) {
+    void yaw_left(float angle = 15.0f) {
         // Convert to radians if needed by your flight controller
         // float angle_rad = angle * (M_PI / 180.0f);
         VehicleCommand cmd = {179, -1.0f, angle, 0, 0, 0, 0, true};
@@ -271,7 +290,7 @@ private:
         send_udp(cmd);
     }
 
-    void yaw_right(float angle = 30.0f) {
+    void yaw_right(float angle = 15.0f) {
         // Convert to radians if needed by your flight controller
         // float angle_rad = angle * (M_PI / 180.0f);
         VehicleCommand cmd = {179, 1.0f, angle, 0, 0, 0, 0, true};
@@ -285,11 +304,44 @@ private:
         send_udp(cmd);
     }
 
+    void move_left(float distance = 0.3f) {
+        VehicleCommand cmd = {184, distance, -1.0f, 0, 0, 0, 0, true};
+        std::cout << "Move left " << distance << " meters" << std::endl;
+        send_udp(cmd);
+    }
+
+    void move_right(float distance = 0.3f) {
+        VehicleCommand cmd = {184, distance, 1.0f, 0, 0, 0, 0, true};
+        std::cout << "Move right " << distance << " meters" << std::endl;
+        send_udp(cmd);
+    }
+
     void stop_movement() {
         VehicleCommand cmd = {181, 0.0f, 0.0f, 0, 0, 0, 0, true};
         std::cout << "Stop movement" << std::endl;
         send_udp(cmd);
     }
+
+    // Add these new member functions to the VoiceControl class
+    void start_path_recording() {
+        VehicleCommand cmd = {182, 1.0f, 0.0f, 0, 0, 0, 0, true};
+        std::cout << "Starting path recording" << std::endl;
+        send_udp(cmd);
+    }
+
+    void stop_path_recording() {
+        VehicleCommand cmd = {182, 0.0f, 0.0f, 0, 0, 0, 0, true};
+        std::cout << "Stopping path recording - destination reached" << std::endl;
+        send_udp(cmd);
+    }
+
+    void return_path() {
+        VehicleCommand cmd = {183, 1.0f, 0.0f, 0, 0, 0, 0, true};
+        std::cout << "Returning along recorded path" << std::endl;
+        send_udp(cmd);
+    }
+
+    
 };
 
 int main(int argc, char* argv[]) {
