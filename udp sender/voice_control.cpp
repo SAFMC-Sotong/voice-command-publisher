@@ -62,11 +62,17 @@ private:
     std::regex heard_pattern_ = std::regex("Transcription: (.*)");
     
     // Patterns for numerical commands
-    std::regex move_forward_pattern_ = std::regex("move forward (\\d+(?:\\.\\d+)?)\\s*(?:meter|meters|m)?");
-    std::regex go_up_pattern_ = std::regex("go up (\\d+(?:\\.\\d+)?)\\s*(?:meter|meters|m)?");
-    std::regex go_down_pattern_ = std::regex("go down (\\d+(?:\\.\\d+)?)\\s*(?:meter|meters|m)?");
+    std::regex move_forward_pattern_ = std::regex("(?:move|go) forward (\\d+(?:\\.\\d+)?)\\s*(?:meter|meters|m)?");
+    std::regex move_backward_pattern_ = std::regex("(?:move|go) backward (\\d+(?:\\.\\d+)?)\\s*(?:meter|meters|m)?");
+    std::regex go_up_pattern_ = std::regex("(?:go|move) up (\\d+(?:\\.\\d+)?)\\s*(?:meter|meters|m)?");
+    std::regex go_down_pattern_ = std::regex("(?:go|move) down (\\d+(?:\\.\\d+)?)\\s*(?:meter|meters|m)?");
     std::regex yaw_left_pattern_ = std::regex("(?:yaw|turn) left (\\d+(?:\\.\\d+)?)\\s*(?:degree|degrees|deg)?");
     std::regex yaw_right_pattern_ = std::regex("(?:yaw|turn) right (\\d+(?:\\.\\d+)?)\\s*(?:degree|degrees|deg)?");
+    std::regex roll_right_pattern_ = std::regex("(?:move|roll|go) right (\\d+(?:\\.\\d+)?)\\s*(?:degree|degrees|deg)?");
+    std::regex roll_left_pattern_ = std::regex("(?:move|roll|go) left (\\d+(?:\\.\\d+)?)\\s*(?:degree|degrees|deg)?");
+
+
+
 
     void setup_udp_socket() {
         udp_socket_ = socket(AF_INET, SOCK_DGRAM, 0);
@@ -184,6 +190,15 @@ private:
         if (std::regex_search(lower_text, match, move_forward_pattern_)) {
             float distance = std::stof(match[1]);
             move_forward(distance);
+        } else if (std::regex_search(lower_text, match, move_backward_pattern_)) {
+            float distance = std::stof(match[1]);
+            move_back(distance);   
+        } else if (std::regex_search(lower_text, match, roll_left_pattern_)) {
+            float distance = std::stof(match[1]);
+            move_left(distance);  
+        } else if (std::regex_search(lower_text, match, roll_right_pattern_)) {
+            float distance = std::stof(match[1]);
+            move_right(distance);  
         } else if (std::regex_search(lower_text, match, go_up_pattern_)) {
             float distance = std::stof(match[1]);
             throttle_up(distance);
@@ -208,9 +223,11 @@ private:
             open_gripper();
         } else if (lower_text.find("gripper close") != std::string::npos) {
             close_gripper();
-        } else if (lower_text.find("go up") != std::string::npos) {
+        } else if (lower_text.find("go up") != std::string::npos || 
+                    lower_text.find("move up") != std::string::npos) {
             throttle_up(0.5f); // Default distance
-        } else if (lower_text.find("go down") != std::string::npos) {
+        } else if (lower_text.find("go down") != std::string::npos || 
+                    lower_text.find("move down") != std::string::npos ) {
             throttle_down(0.5f); // Default distance
         } else if (lower_text.find("turn left") != std::string::npos || 
                    lower_text.find("yaw left") != std::string::npos) {
@@ -222,26 +239,28 @@ private:
                     lower_text.find("go forward") != std::string::npos) {
             move_forward(0.3f); // Default distance
         } else if (lower_text.find("move backward") != std::string::npos ||
-                lower_text.find("go backward") != std::string::npos) {
-                move_back(0.3f); // Default distance
+                    lower_text.find("go backward") != std::string::npos) {
+            move_back(0.3f); // Default distance
          } else if (lower_text.find("move left") != std::string::npos ||
-            lower_text.find("pitch left") != std::string::npos) {
+                    lower_text.find("roll left") != std::string::npos ||
+                    lower_text.find("go left") != std::string::npos)) {
             move_left(0.3f); // Default distance
         } else if (lower_text.find("move right") != std::string::npos ||
-            lower_text.find("pitch right") != std::string::npos) {
+                    lower_text.find("roll right") != std::string::npos ||
+                    lower_text.find("go right") != std::string::npos)) {
             move_right(0.3f); // Default distance
         } else if (lower_text.find("stop") != std::string::npos) {
             stop_movement();
         } else if (lower_text.find("go record") != std::string::npos || 
-            lower_text.find("record path") != std::string::npos) {
-        start_path_recording();
-        } else if (lower_text.find("alpha reach") != std::string::npos || 
-            lower_text.find("no record") != std::string::npos) {
-        stop_path_recording();
+                    lower_text.find("record path") != std::string::npos) {
+            start_path_recording();
+        } else if (lower_text.find("reach") != std::string::npos || 
+                    lower_text.find("no record") != std::string::npos) {
+            stop_path_recording();
         } else if (lower_text.find("go back") != std::string::npos || 
-            lower_text.find("return path") != std::string::npos || 
-            lower_text.find("return home") != std::string::npos) {
-        return_path();
+                    lower_text.find("return path") != std::string::npos || 
+                    lower_text.find("return home") != std::string::npos) {
+            return_path();
         }
     }
 
