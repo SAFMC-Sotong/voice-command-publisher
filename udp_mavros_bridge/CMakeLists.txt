@@ -61,7 +61,7 @@ ament_target_dependencies(udp_mavros_bridge_3
 )
 
 add_executable(udp_mavros_bridge_4 src/udp_mavros_bridge_3.cpp)
-ament_target_dependencies(udp_mavros_bridge_3
+ament_target_dependencies(udp_mavros_bridge_4
   rclcpp
   geometry_msgs
   mavros_msgs
