@@ -60,12 +60,22 @@ ament_target_dependencies(udp_mavros_bridge_3
   tf2_geometry_msgs
 )
 
+add_executable(udp_mavros_bridge_4 src/udp_mavros_bridge_3.cpp)
+ament_target_dependencies(udp_mavros_bridge_3
+  rclcpp
+  geometry_msgs
+  mavros_msgs
+  tf2
+  tf2_geometry_msgs
+)
+
 # Install
 install(TARGETS
   udp_mavros_bridge
   mavros_example
   udp_mavros_bridge_2
   udp_mavros_bridge_3
+  udp_mavros_bridge_4
   DESTINATION lib/${PROJECT_NAME}
 )
 
